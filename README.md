@@ -3,7 +3,7 @@ AI Project for an itch.io indie board game Tiny Islands (2019)
 
 [Tiny Islands](https://dr-d-king.itch.io/tiny-islands) is a turn-based grid-based strategy game that involves placing different terrain tiles and drawing islands to earn points. This project will involve two stages: The first is a state search algorithm to determine the best high score given a known seed; and the second would be to train a reinforcement learning model that can exceed at obtaining an effective high score without prior knowledge of the seed’s configurations.
 
-### Team Members:
+## Team Members:
 Alex Ma, Andrew Sayegh, Diego Valdivia Cox, Hongkang Xu
 
 ## Milestones:
