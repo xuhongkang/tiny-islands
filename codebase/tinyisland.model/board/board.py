@@ -1,4 +1,4 @@
-from terrains import terrain as Terrain
+from terrain import terrain as Terrain
 from tile import tile as Tile
 from typing import Callable
 
