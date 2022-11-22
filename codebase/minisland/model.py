@@ -3,6 +3,9 @@ from enum import Enum
 
 
 class SearchRange(Enum):
+    """
+    Represents a location based relationship a tile can have with another tile.
+    """
     ADJ = "adjacent"
     NEAR = "near"
     COLUMN = "column"
@@ -19,6 +22,15 @@ class ScoringLogic:
         self.is_repeat = not only_once
 
     def get_score(self, adj: List[str], near: List[str], col: List[str], row: List[str]) -> int:
+        """
+        Groups candidate tiles by the searchRange type.
+        Scores based on the quantity of candidate tile name and their searchRange type.
+        :param adj: List of candidates adjacent.
+        :param near: List of candidates near.
+        :param col: list of candidates in the same column.
+        :param row: List of candidates in the same row.
+        :return: Returns the scoring of a single compared to all other candidates.
+        """
         target_names, counter = [], 0
         if SearchRange.NEAR in self.search_range:
             target_names.extend(adj)
@@ -38,19 +50,24 @@ class ScoringLogic:
                     return self.unit_score
         return self.base_score + counter * self.unit_score
 
-
+"""
+The representation of a Tile type contains a String name and a List with logic for scoring the type. 
+"""
 class TileType:
     def __init__(self, name: str, logic: List[ScoringLogic]):
         self.name = name
         self.logic = logic
 
     def get_score(self, adj: List[str], near: List[str], col: List[str], row: List[str]) -> int:
+
         score = 0
         for rule in self.logic:
             score += rule.get_score(adj, near, col, row)
         return score
 
-
+"""
+Currently Three types of Tile + an Empty.
+"""
 class KnownTypeTypes(Enum):
     EMPTY = TileType("E", [])
     TypeA = TileType("A",
@@ -60,6 +77,9 @@ class KnownTypeTypes(Enum):
                            ScoringLogic((lambda name: name == "A" or name == "B"), 1, 0, [SearchRange.NEAR], False)])
 
 
+"""
+A tile contains position, and a tuple of two list of ints representing touching tiles and nearby tiles.
+"""
 class TileData:
     def __init__(self, pos_x: int, pos_y: int, adj_info: Tuple[List[Tuple[int, int]], List[Tuple[int, int]],
                                                                List[Tuple[int, int]], List[Tuple[int, int]]]):
@@ -70,6 +90,10 @@ class TileData:
         self.adj_info = adj_info
 
     def add_type(self, tar: KnownTypeTypes):
+        """
+        Setter method for a tile data.
+        :param tar: Enum of Tile types. Throws an exception if type EMPTY
+        """
         if tar == KnownTypeTypes.EMPTY:
             raise Exception("Placing Empty TileData Type")
         self.type = tar
@@ -127,13 +151,23 @@ class Board:
                 row.append((pos_y, c))
         return adj, near, col, row
 
+
     def _get_tile_at_position(self, pos: Tuple[int, int]) -> TileData:
+        """
+        Helper getter method for single tile data.
+        :param pos: A tuple of two ints representing the position (COORDINATES).
+        :return: TileData at the coordinate. Throws an Exception if the coordinate is outside the board.
+        """
         x, y = pos
         if x < 0 or y < 0 or x >= self.col_num or y >= self.row_num:
             raise Exception("Position Outside Board Dimensions")
         return self.tile_map[pos]
 
-    def _get_tiles_at_positions(self, lo_pos: List[Tuple[int, int]]):
+    def _get_tiles_at_positions(self, lo_pos: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
+        """
+        :param lo_pos: A list of tuples of two ints representing the position (COORDINATES).
+        :return: A list of TileData
+        """
         lo_tiles = list()
         for pos in lo_pos:
             lo_tiles.append(self._get_tile_at_position(pos))
