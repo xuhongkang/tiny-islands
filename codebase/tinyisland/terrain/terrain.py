@@ -1,5 +1,6 @@
 from enum import Enum
 
+
 class Terrain(Enum):
     """
     Enum representing types of Terrain.
