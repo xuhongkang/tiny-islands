@@ -1,6 +1,6 @@
 from typing import Callable, List, Tuple, Any
 from enum import Enum
-import random as Random
+import random as rand
 
 
 class SearchRange(Enum):
@@ -26,10 +26,10 @@ class ScoringLogic:
         """
         Groups candidate tiles by the searchRange type.
         Scores based on the quantity of candidate tile name and their searchRange type.
-        :param adj: List of candidates adjacent.
-        :param near: List of candidates near.
-        :param col: list of candidates in the same column.
-        :param row: List of candidates in the same row.
+        param adj: List of candidates adjacent.
+        param near: List of candidates near.
+        param col: list of candidates in the same column.
+        param row: List of candidates in the same row.
         :return: Returns the scoring of a single compared to all other candidates.
         """
         target_names, counter = [], 0
@@ -79,6 +79,18 @@ class KnownTileType(Enum):
     TypeC = TileType("C", [ScoringLogic((lambda name: name == 'C'), -2, 0, [SearchRange.ADJ], False),
                            ScoringLogic((lambda name: name == "A" or name == "B"), 1, 0, [SearchRange.NEAR], False)])
 
+    @classmethod
+    def _missing_(cls, value):
+        if isinstance(value, TileType):
+            if value.name == "A":
+                return KnownTileType.TypeA
+            elif value.name == "B":
+                return KnownTileType.TypeB
+            elif value.name == "C":
+                return KnownTileType.TypeC
+            else:
+                return KnownTileType.EMPTY
+
 
 class TileData:
     """
@@ -87,16 +99,16 @@ class TileData:
 
     def __init__(self, pos_x: int, pos_y: int, adj_info: Tuple[List[Tuple[int, int]], List[Tuple[int, int]],
                                                                List[Tuple[int, int]], List[Tuple[int, int]]]):
-        self.type = KnownTileType.EMPTY
         self.pos_x = pos_x
         self.pos_y = pos_y
-        self.is_occupied = False
         self.adj_info = adj_info
+        self.is_occupied = False
+        self.type = KnownTileType.EMPTY
 
     def add_type(self, tar: KnownTileType):
         """
         Setter method for a tile data.
-        :param tar: Enum of Tile types. Throws an exception if type EMPTY
+        param tar: Enum of Tile types. Throws an exception if type EMPTY
         """
         if tar == KnownTileType.EMPTY:
             raise ValueError("Placing Empty TileData Type")
@@ -126,7 +138,7 @@ class Board:
                                                                        List[Tuple[int, int]], List[Tuple[int, int]]]):
         """
         Helper Method for generating valid adjacency info.
-        :param pos: A tuple of two ints representing the position from which to generate adjacency info.
+        param pos: A tuple of two ints representing the position from which to generate adjacency info.
         :return: A tuple of two list of ints representing touching tiles and nearby tiles.
         """
         pos_x, pos_y = pos
@@ -158,7 +170,7 @@ class Board:
     def _get_tile_at_position(self, pos: Tuple[int, int]) -> TileData:
         """
         Helper getter method for single tile data.
-        :param pos: A tuple of two ints representing the position (COORDINATES).
+        param pos: A tuple of two ints representing the position (COORDINATES).
         :return: TileData at the coordinate. Throws an Exception if the coordinate is outside the board.
         """
         x, y = pos
@@ -168,7 +180,7 @@ class Board:
 
     def _get_tiles_at_positions(self, lo_pos: List[Tuple[int, int]]) -> List[TileData]:
         """
-        :param lo_pos: A list of tuples of two ints representing the position (COORDINATES).
+        param lo_pos: A list of tuples of two ints representing the position (COORDINATES).
         :return: A list of TileData
         """
         lo_tiles = list()
@@ -213,7 +225,7 @@ class Board:
         for r in range(self.row_num):
             row_str = ""
             for c in range(self.col_num):
-                row_str += " " + self._get_tile_at_position((c, r)).type.value.name
+                row_str += "   " + self._get_tile_at_position((c, r)).type.value.name
             print(row_str + "\n")
 
 
@@ -231,7 +243,7 @@ class GameState:
         self.score = 0
 
     def _compute_choices(self, seed_num: int) -> List[Tuple[Tuple[Any, Tuple[int, int]], ...]]:
-        Random.seed(seed_num)
+        rand.seed(seed_num)
         lo_choices, lo_types, known_pos = [], [], []
         for choice_type in KnownTileType:
             if choice_type != KnownTileType.EMPTY:
@@ -240,10 +252,10 @@ class GameState:
             choices, lo_pos = [], []
             last_choice = None
             for choice_num in range(self.choice_count):
-                rand_type = lo_types[Random.randrange(len(lo_types))]
-                rand_pos = (Random.randrange(self.col_num), Random.randrange(self.row_num))
+                rand_type = lo_types[rand.randrange(len(lo_types))]
+                rand_pos = (rand.randrange(self.col_num), rand.randrange(self.row_num))
                 while last_choice == (rand_type, rand_pos) or rand_pos in known_pos:
-                    rand_pos = (Random.randrange(self.col_num), Random.randrange(self.row_num))
+                    rand_pos = (rand.randrange(self.col_num), rand.randrange(self.row_num))
                 choice = (rand_type, rand_pos)
                 lo_pos.append(rand_pos)
                 choices.append(choice)
@@ -275,26 +287,30 @@ class GameState:
         for choice_num in range(self.choice_count):
             option = choices[choice_num]
             print("Choice " + str(choice_num) + ":\n"
-                                                "Position: (" + str(option[1][0]) + " " + str(option[1][1]) + ")\n"
-                                                "TileType: " + option[0].value.name + "\n")
+                  "Position: (" + str(option[1][0]) + " " + str(option[1][1]) + ")\n"
+                  "TileType: " + option[0].value.name + "\n")
 
-    def cli_get_move_helper(self):
+    def cli_get_move(self):
         try:
             self.choose_option(int(input("Choose Your Option: ")))
         except ValueError as e:
             print(e)
             print("Please Try Again: ")
-            self.cli_get_move_helper()
+            self.cli_get_move()
 
 
 if __name__ == "__main__":
-    seed = Random.randrange(1000)
-    state = GameState(3, 3, 4, 2, seed)
-    print("Game Started! Seed: " + str(seed))
+    print("-------------------------------------------------")
+    seed_int = rand.randrange(1000)
+    state = GameState(3, 3, 4, 2, seed_int)
+    print("Game Started! Seed: " + str(seed_int))
+    print("-------------------------------------------------")
     while not state.has_game_ended():
         state.board.view_board_cli()
         state.view_choices_cli(state.get_choices())
-        state.cli_get_move_helper()
+        state.cli_get_move()
+        print("-------------------------------------------------")
     print("You Won! Here's Your Final Island:\n")
     state.board.view_board_cli()
     print("Your Final Score is: " + str(state.score))
+    print("-------------------------------------------------")
