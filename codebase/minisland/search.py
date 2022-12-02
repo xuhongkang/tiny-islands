@@ -76,6 +76,7 @@ def depth_limited_bfs_high_score(init_state: GameState, depth: int, pct_to_prune
         memo = lo_new_states
         if counter == depth:
             prune_percentage(memo, pct_to_prune)
+            counter = 0
         else:
             counter += 1
     max_score = 0
