@@ -5,6 +5,15 @@ import time
 
 
 def bfs_high_score(init_state: GameState) -> Tuple[int, List[int]]:
+    """
+    memo: Represents the path taken by mapping a GAMESTATE to CHOICE taken.
+    A choice represents the placement of a Tile type on the board.
+
+    Navigates every option at every state as a breadth first search.
+    Accumulates the path with highest return of scoring.
+
+    """
+
     memo = dict()
     memo[init_state] = []
     for i in range(init_state.turn_limit):
@@ -29,6 +38,9 @@ def bfs_high_score(init_state: GameState) -> Tuple[int, List[int]]:
 
 
 def bfs_high_score_with_pruning(init_state: GameState) -> Tuple[int, List[int]]:
+    """
+    Extra step that evaluates the score of a choice to prune irrelevant nodes.
+    """
     memo = dict()
     memo[init_state] = []
     for i in range(init_state.turn_limit):

@@ -125,6 +125,9 @@ class TileData:
 
 
 class Board:
+    """
+    Board of Size N x M: generates tile position information
+    """
     def __init__(self, col_num: int, row_num: int):
         self.col_num = col_num
         self.row_num = row_num
@@ -199,7 +202,7 @@ class Board:
             lo_type_adj_info.append(lo_types)
         return tuple(lo_type_adj_info)
 
-    def get_vacant_tile_positions(self):
+    def get_vacant_tile_positions(self) -> List[TileData]:
         vacant_tiles = list()
         for tile_pos in self.tile_map.keys():
             tile = self._get_tile_at_position(tile_pos)
@@ -207,7 +210,7 @@ class Board:
                 vacant_tiles.append(tile_pos)
         return vacant_tiles
 
-    def add_tile_type(self, tile_type: KnownTileType, pos: Tuple[int, int]):
+    def add_tile_type(self, tile_type: KnownTileType, pos: Tuple[int, int]) -> ():
         tile = self._get_tile_at_position(pos)
         if tile.is_occupied:
             raise ValueError("Tile Has Been Occupied")
@@ -273,6 +276,9 @@ class GameState:
         return self.choices[self.turns_passed]
 
     def choose_option(self, option: int):
+        """
+        Method to strategies next game state.
+        """
         if self.has_game_ended():
             raise ValueError("Game Finished")
         if option < 0 or option >= self.choice_count:
@@ -281,6 +287,7 @@ class GameState:
         self._execute_turn(turn_option)
 
     def has_game_ended(self) -> bool:
+        # TODO: Checking of complete board?
         return self.turns_passed >= self.turn_limit
 
     def view_choices_cli(self, choices: Tuple[Tuple[KnownTileType, Tuple[int, int]], ...]):
