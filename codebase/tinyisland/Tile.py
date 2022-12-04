@@ -1,16 +1,22 @@
 from enum import Enum
-from typing import Callable, List, Tuple, Any
+from typing import List
 
 
 class TileType(Enum):
-    EMPTY = "E"
-    HOUSES = "H"
-    CHURCHES = "C"
-    FOREST = "F"
-    MOUNTAIN = "M"
-    BOATS = "B"
-    WAVES = "W"
-    SAND = "S"
+    EMPTY = 0
+    HOUSES = 1
+    CHURCHES = 2
+    FOREST = 3
+    MOUNTAIN = 4
+    BOATS = 5
+    WAVES = 6
+    BEACHES = 7
+
+
+ON_ISLAND_TILE_TYPES = [TileType.HOUSES, TileType.CHURCHES, TileType.FOREST, TileType.MOUNTAIN]
+ON_SHORE_TILE_TYPES = [TileType.BEACHES]
+OFF_SHORE_TILE_TYPES = [TileType.BOATS, TileType.WAVES]
+OFF_ISLAND_TILE_TYPES = ON_SHORE_TILE_TYPES + OFF_SHORE_TILE_TYPES
 
 
 class Position:
@@ -34,28 +40,51 @@ class TileData:
     """
 
     def __init__(self, position_on_board: Position, adjacency_info: AdjacencyInfo, is_tile_occupied: bool = False,
-                 is_tile_on_island: bool = False, type_of_terrain: TileType = TileType.EMPTY, is_valid: bool = True):
+                 is_tile_on_island: bool = False, is_tile_on_shore: bool = False,
+                 type_of_terrain: TileType = TileType.EMPTY, is_valid: bool = True):
         self.pos = position_on_board
         self.adj_info = adjacency_info
         self.is_occupied = is_tile_occupied
         self.on_island = is_tile_on_island
+        self.on_shore = is_tile_on_shore
         self.type = type_of_terrain
         self.is_valid = is_valid
 
     def add_type(self, tar: TileType):
         """
-        Setter method for a tile data.
-        param tar: Enum of Tile types. Throws an exception if type EMPTY
+        Adds the given type to the current tile data
+        as well as Automatic Validation (For Lenient Total Score)
         """
         if tar == TileType.EMPTY:
             raise ValueError("Placing Empty TileData Type")
+        elif tar in OFF_ISLAND_TILE_TYPES and self.on_island:
+            self.is_valid = False
         self.type = tar
         self.is_occupied = True
 
-    def make_as_island(self):
+    def mark_as_island(self):
+        """
+        Method Used To Update The Tile Type when marked as island
+        as well as Automatic Validation (For Lenient Total Score)
+        """
         self.on_island = True
+        if self.type in OFF_ISLAND_TILE_TYPES:
+            self.is_valid = False
 
-    def validate_for_turn(self, result: bool):
-        self.is_valid = result
+    def mark_as_shore(self):
+        """
+        Method Used To Update Tile Type when marked as shore
+        as well as Automatic Validation (For Lenient Total Score)
+        """
+        self.on_shore = True
+        if self.type in ON_ISLAND_TILE_TYPES:
+            self.is_valid = False
 
-
+    def validate_tile_type(self):
+        """
+        Method Used To Validate Tile Types At the End Of the Game (For a Strict Total Score)
+        """
+        if self.type in ON_ISLAND_TILE_TYPES:
+            self.is_valid = self.on_island
+        elif self.type in OFF_ISLAND_TILE_TYPES:
+            self.is_valid = not self.on_island

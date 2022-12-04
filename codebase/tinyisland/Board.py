@@ -1,14 +1,23 @@
-from typing import Callable, List, Tuple, Any
+from typing import List
 
-from codebase.tinyisland.Tile import TileData, TileType, Position, AdjacencyInfo
+from tinyisland.Tile import Position, TileData, AdjacencyInfo, TileType, ON_ISLAND_TILE_TYPES
 
-HOUSES_REWARD_PER_UNIQUE_TYPE_NEARBY= 2
+PENALTY_PER_INVALID_TILE = -5
+HOUSES_REWARD_PER_UNIQUE_TYPE_NEARBY = 2
+CHURCHES_REWARD_PER_HOUSES_NEARBY = 2
+CHURCHES_REWARD_PER_OTHER_HOUSES_ON_ISLAND = 1
+FOREST_REWARD_PER_FOREST_ADJACENT = 1
+MOUNTAIN_REWARD_PER_FOREST_NEARBY = 2
+BEACHES_REWARD_IF_ON_SHORE = 1
+WAVES_REWARD_IF_UNIQUE_COLUMN_ROW = 2
+
 
 class Board:
-    def __init__(self, col_num: int, row_num: int):
+    def __init__(self, col_num: int = 9, row_num: int = 9):
         self.col_num = col_num
         self.row_num = row_num
         self.tile_map = dict()
+        self.islands = []
         for r in range(row_num):
             for c in range(col_num):
                 pos = Position(c, r)
@@ -70,14 +79,22 @@ class Board:
 
     def _get_score_at_position(self, tile_position: Position) -> int:
         tar_tile = self._get_tile_at_position(tile_position)
-        if tar_tile.type == TileType.HOUSES:
+        if not tar_tile.is_valid:
+            return PENALTY_PER_INVALID_TILE
+        elif tar_tile.type == TileType.HOUSES:
             return self._get_score_helper_houses(tar_tile)
         elif tar_tile.type == TileType.CHURCHES:
+            return self._get_score_helper_church(tar_tile)
         elif tar_tile.type == TileType.FOREST:
+            return self._get_score_helper_forest(tar_tile)
         elif tar_tile.type == TileType.MOUNTAIN:
-        elif tar_tile.type == TileType.SAND:
+            return self._get_score_helper_mountain(tar_tile)
+        elif tar_tile.type == TileType.BEACHES:
+            return BEACHES_REWARD_IF_ON_SHORE if tar_tile.on_shore else 0
         elif tar_tile.type == TileType.BOATS:
+            return self._get_score_helper_boats(tar_tile)
         elif tar_tile.type == TileType.WAVES:
+            return self._get_score_helper_mountain(tar_tile)
         else:
             return 0
 
@@ -87,16 +104,77 @@ class Board:
         for near_pos in (tile.adj_info.adj + tile.adj_info.near):
             tar_tile = self._get_tile_at_position(near_pos)
             tar_type = tar_tile.type
-            if tar_type not in lo_unique_types and tar_type != TileType.EMPTY:
+            if tar_type not in lo_unique_types and tar_type != TileType.EMPTY and tar_tile.is_valid:
                 matches += 1
                 lo_unique_types.append(tar_type)
         return HOUSES_REWARD_PER_UNIQUE_TYPE_NEARBY * matches
 
-    def _validate_all_tiles_and_compute_penalties(self) -> int:
-        penalty = 0
+    def _get_score_helper_church(self, tile: TileData):
+        island_tiles = []
+        score = 0
+        for island in self.islands:
+            if tile.pos in island:
+                island_tiles.extend(island)
+        for near_pos in (tile.adj_info.adj + tile.adj_info.near):
+            tar_tile = self._get_tile_at_position(near_pos)
+            tar_type = tar_tile.type
+            if tar_type == TileType.HOUSES and tar_tile.is_valid:
+                score += CHURCHES_REWARD_PER_HOUSES_NEARBY
+                if tar_tile.pos in island_tiles:
+                    island_tiles.remove(tar_tile)
+        for other_tile in island_tiles:
+            if other_tile == TileType.CHURCHES:
+                return 0
+            elif other_tile == TileType.HOUSES:
+                score += CHURCHES_REWARD_PER_OTHER_HOUSES_ON_ISLAND
+        return score
+
+    def _get_score_helper_forest(self, tile: TileData):
+        matches = 0
+        for adj_pos in tile.adj_info.adj:
+            tar_tile = self._get_tile_at_position(adj_pos)
+            tar_type = tar_tile.type
+            if tar_type == TileType.FOREST and tar_tile.is_valid:
+                matches += 1
+        return FOREST_REWARD_PER_FOREST_ADJACENT * matches
+
+    def _get_score_helper_mountain(self, tile: TileData):
+        matches = 0
+        for near_pos in (tile.adj_info.adj + tile.adj_info.near):
+            tar_tile = self._get_tile_at_position(near_pos)
+            tar_type = tar_tile.type
+            if tar_type == TileType.FOREST and tar_tile.is_valid:
+                matches += 1
+        return MOUNTAIN_REWARD_PER_FOREST_NEARBY * matches
+
+    def _get_score_helper_boats(self, tile: TileData):
+        visited, queue = [], []
+        visited.append(tile.pos)
+        queue.append(tile.pos)
+        while queue:
+            next_pos = queue.pop(0)
+            next_tile = self._get_tile_at_position(next_pos)
+            if next_tile.is_valid:
+                if next_tile.type in ON_ISLAND_TILE_TYPES or next_tile.on_island:
+                    return abs(next_pos.col - tile.pos.col) + abs(next_pos.row - tile.pos.row)
+                for neighbor in next_tile.adj_info.adj:
+                    if neighbor not in visited:
+                        visited.append(neighbor)
+                        queue.append(neighbor)
+        return max(self.row_num, self.col_num)
+
+    def _get_score_helper_waves(self, tile: TileData):
+        for cr_pos in (tile.adj_info.col + tile.adj_info.row):
+            tar_tile = self._get_tile_at_position(cr_pos)
+            tar_type = tar_tile.type
+            if tar_type == TileType.WAVES and tar_tile.is_valid:
+                return 0
+        return WAVES_REWARD_IF_UNIQUE_COLUMN_ROW
+
+    def _strict_revalidation_of_all_tiles(self):
         for tile_pos in self.tile_map.keys():
             tile = self._get_tile_at_position(tile_pos)
-            if (tile.type)
+            tile.validate_tile_type()
 
     def add_tile_type(self, tile_type: TileType, pos: Position):
         tile = self._get_tile_at_position(pos)
@@ -104,16 +182,34 @@ class Board:
             raise ValueError("Tile Has Been Occupied")
         tile.add_type(tile_type)
 
-    def get_score(self):
-        score = 0 - self._validate_all_tiles_and_compute_penalties()
+    def get_score(self, is_lenient: bool = True):
+        if not is_lenient:
+            self._strict_revalidation_of_all_tiles()
         score = 0
         for tile_pos in self.tile_map.keys():
             score += self._get_score_at_position(tile_pos)
         return score
 
+    def add_island(self, lo_island_pos: List[Position]):
+        lo_known_shore_pos = []
+        for pos in lo_island_pos:
+            tile = self._get_tile_at_position(pos)
+            if tile.on_island:
+                raise ValueError("Assigned Island Overlapping with Previous Island")
+            for shore_candidate_pos in tile.adj_info.adj:
+                if shore_candidate_pos not in lo_island_pos and shore_candidate_pos not in lo_known_shore_pos:
+                    if self._get_tile_at_position(shore_candidate_pos).on_island:
+                        raise ValueError("Assigned Island Overlapping with Previous Island")
+                    lo_known_shore_pos.append(shore_candidate_pos)
+        for pos in lo_island_pos:
+            self._get_tile_at_position(pos).mark_as_island()
+        for pos in lo_known_shore_pos:
+            self._get_tile_at_position(pos).mark_as_shore()
+        self.islands.append(lo_island_pos)
+
     def view_board_cli(self):
         for r in range(self.row_num):
             row_str = ""
             for c in range(self.col_num):
-                row_str += "   " + self._get_tile_at_position(Position(c, r)).type.value
+                row_str += "   " + str(self._get_tile_at_position(Position(c, r)).type.value)
             print(row_str + "\n")
