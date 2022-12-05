@@ -1,6 +1,6 @@
 from typing import List
 
-from tinyisland.Tile import Position, TileData, AdjacencyInfo, TileType, ON_ISLAND_TILE_TYPES
+from Tile import Position, TileData, AdjacencyInfo, TileType, ON_ISLAND_TILE_TYPES
 
 PENALTY_PER_INVALID_TILE = -5
 HOUSES_REWARD_PER_UNIQUE_TYPE_NEARBY = 2
@@ -176,7 +176,7 @@ class Board:
             tile = self._get_tile_at_position(tile_pos)
             tile.validate_tile_type()
 
-    def add_tile_type(self, tile_type: TileType, pos: Position):
+    def add_tile_type_at_position(self, tile_type: TileType, pos: Position):
         tile = self._get_tile_at_position(pos)
         if tile.is_occupied:
             raise ValueError("Tile Has Been Occupied")
@@ -192,17 +192,26 @@ class Board:
 
     def add_island(self, lo_island_pos: List[Position]):
         lo_known_shore_pos = []
+        lo_valid_island_tiles = []
         for pos in lo_island_pos:
             tile = self._get_tile_at_position(pos)
+            if tile in lo_valid_island_tiles:
+                raise ValueError("Assigned Island Contains Duplicate Tile Positions")
             if tile.on_island:
-                raise ValueError("Assigned Island Overlapping with Previous Island")
+                raise ValueError("Assigned Island Overlapping with Some Previous Island")
+            is_isolated = True
             for shore_candidate_pos in tile.adj_info.adj:
                 if shore_candidate_pos not in lo_island_pos and shore_candidate_pos not in lo_known_shore_pos:
                     if self._get_tile_at_position(shore_candidate_pos).on_island:
                         raise ValueError("Assigned Island Overlapping with Previous Island")
                     lo_known_shore_pos.append(shore_candidate_pos)
-        for pos in lo_island_pos:
-            self._get_tile_at_position(pos).mark_as_island()
+                elif shore_candidate_pos in lo_island_pos and is_isolated:
+                    is_isolated = False
+            if is_isolated:
+                raise ValueError("Assigned Island is Not Connected")
+            lo_valid_island_tiles.append(tile)
+        for tile in lo_valid_island_tiles:
+            tile.mark_as_island()
         for pos in lo_known_shore_pos:
             self._get_tile_at_position(pos).mark_as_shore()
         self.islands.append(lo_island_pos)
@@ -213,3 +222,12 @@ class Board:
             for c in range(self.col_num):
                 row_str += "   " + str(self._get_tile_at_position(Position(c, r)).type.value)
             print(row_str + "\n")
+
+    def get_tile_array(self) -> list[list[int]]:
+        lo_rows = []
+        for r in range(self.row_num):
+            row = []
+            for c in range(self.col_num):
+                row.append(self._get_tile_at_position(Position(c, r)).type.value)
+            lo_rows.append(row)
+        return lo_rows
