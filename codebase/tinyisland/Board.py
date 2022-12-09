@@ -228,6 +228,6 @@ class Board:
         for r in range(self.row_num):
             row = []
             for c in range(self.col_num):
-                row.append(self._get_tile_at_position(Position(c, r)).type.value)
+                row.append(list(TileType).index(self._get_tile_at_position(Position(c, r)).type))
             lo_rows.append(row)
         return lo_rows

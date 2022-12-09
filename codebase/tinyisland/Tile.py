@@ -3,14 +3,14 @@ from typing import List
 
 
 class TileType(Enum):
-    EMPTY = 0
-    HOUSES = 1
-    CHURCHES = 2
-    FOREST = 3
-    MOUNTAIN = 4
-    BOATS = 5
-    WAVES = 6
-    BEACHES = 7
+    EMPTY = "E"
+    HOUSES = "H"
+    CHURCHES = "C"
+    FOREST = "F"
+    MOUNTAIN = "M"
+    BOATS = "B"
+    WAVES = "W"
+    BEACHES = "S"
 
 
 ON_ISLAND_TILE_TYPES = [TileType.HOUSES, TileType.CHURCHES, TileType.FOREST, TileType.MOUNTAIN]

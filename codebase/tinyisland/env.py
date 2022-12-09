@@ -6,8 +6,8 @@ import random as rand
 from gym.core import ActType
 from gym.spaces import Dict, Tuple, Box, Discrete
 
-from codebase.tinyisland.Board import Board
-from codebase.tinyisland.Tile import TileType, Position
+from tinyisland.Board import Board
+from tinyisland.Tile import TileType, Position
 
 
 def _compute_all_choices_based_on_seed(seed_num: Optional[int] = None):
